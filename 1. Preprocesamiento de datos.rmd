@@ -1,0 +1,89 @@
+---
+title: "Preprocesamiento de datos"
+output: html_document
+date: "2022-11-02"
+---
+
+### **Los siguientes pasos se realizan en la terminal Ubuntu**
+Una vez descargados los datos de la secuenciación se realizará una evaluación de las calidades obtenidas antes de la eliminación de los adaptadores, con el objetivo de revisar las calidades de los datos brutos entregados y poder visualizar como estos mejoran luego de la eliminación de los adaptadores. 
+
+**1. Fastqc pre-trimming**
+Por incompatibilidad del programa fastqc con otros programas que se usarán posteriormente, tanto el fastqc como multiqc se cargaron en un ambiente conda separado. 
+
+- _Se crea el ambiente fastqc y se instala fastqc y multiqc_
+```{bash}
+conda create -n fastqc -c conda-forge -c bioconda fastqc multiqc
+```
+- _Se ingresa al ambiente conteniendo los programas fasqtc y multiqc._ 
+```{bash}
+conda activate fastqc
+```
+- _Nos posicionamos en la carpeta de trabajo con la carpeta RawData_
+```{bash}
+cd /mnt/d/sRNA/small-mio/datos/muestras_Bc
+```
+- _Creamos una carpeta donde almacenaremos los resultados y ejecutamos fasqtc_
+```{bash}
+     mkdir rawBc_fastqc
+     fastqc -t 2 RawData/*/*.fq.gz -o rawBc_fastqc
+```
+- _A continuación entramos a la carpeta con los resultados e integramos todos los reportes de fastqc en uno solo que permita simplificar la comparación de los resultados entre muestras_
+```{bash}
+     cd rawBc_fastqc
+     multiqc .
+```
+- _Finalmente cerramos el ambiente de trabajo de conda para esta sección_
+```{bash}
+     conda deactivate
+```
+Ahora es posible abrir el reporte de multiqc (archivo html) y evaluar la calidad de las librerías obtenidas. 
+
+**2. Remoción de los adaptadores vía cutadapt**
+En la siguiente sección trabajaremos con el programa cutadapt, el cual será instalado en el ambiente conda sirna que contendrá la mayoría de los programas con los que continuaremos trabajando. 
+ 
+- _Se crea el ambiente sirna y se instala cutadapt. Posteriormente entramos al ambiente y finalmente volvemos a la carpeta anterior, para entrar a la carpeta conteniendo los datos brutos_
+     
+```{bash}
+     conda create -n sirna -c conda-forge -c bioconda cutadapt
+     conda activate sirna
+     cd ..
+     cd RawData
+```
+- _Creamos la carpeta donde guardaremos los resultados de cutadapt y ejecutamos el programa_
+```{bash}
+     mkdir cutadapt
+     for f in *; do base=${f##*/}; cutadapt -a AGATCGGAAGAGCACACGTCT -j 2 --discard-untrimmed -m 18 -M 30 -o /mnt/d/sRNA/small-mio/datos/muestras_Bc/RawData/cutadapt/${base%}.fq.gz ${base%}/${base%}.fq.gz; done 
+```
+- _Finalmente cerramos el ambiente de trabajo de conda para esta sección_
+```{bash}
+conda deactivate
+```
+
+**3. Fastqc post-trimming**
+
+- _Se ingresa al ambiente conteniendo los programas fasqtc y multiqc._ 
+```{bash}
+conda activate fastqc
+```
+- _Nos posicionamos en la carpeta de trabajo con los archivos sin adaptadores_
+```{bash}
+cd cutadapt/
+```
+- _Creamos una carpeta donde almacenaremos los resultados y ejecutamos fasqtc_
+```{bash}
+     mkdir trimmedBc_fastqc
+     fastqc -t 2 *.fq.gz -o trimmedBc_fastqc
+```
+- _A continuación entramos a la carpeta conteniendo los fastqc e integramos todos los reportes de fastqc en uno solo que permita simplificar la comparación de los resultados entre muestras_
+```{bash}
+     cd trimmedBc_fastqc
+     multiqc .
+```
+- _Finalmente cerramos el ambiente de trabajo de conda para esta sección_
+```{bash}
+conda deactivate
+```
+
+Ahora es posible abrir el reporte de multiqc (archivo html) y evaluar la calidad de las librerías obtenidas. 
+
+
